@@ -57,7 +57,7 @@ jobs:
 
       - run: flutter pub get
       - name: Собрать веб-версию
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+        run: flutter build web --release --no-web-resources-cdn --base-href "/${{ github.event.repository.name }}/"
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
