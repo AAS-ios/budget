@@ -1,0 +1,90 @@
+# Автоматическая сборка «Моего бюджета» на GitHub.
+#
+# При каждом push в main (или вручную через Actions → Run workflow):
+#   1. проверяет код (flutter analyze + flutter test);
+#   2. собирает веб-версию и публикует её на GitHub Pages —
+#      её можно добавить на экран «Домой» на айфоне;
+#   3. собирает неподписанный .ipa для установки через Sideloadly.
+
+name: Сборка
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+
+  web:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # В проекте нет папки web — создаём её (код в lib/ не трогается).
+      - name: Добавить веб-платформу
+        run: |
+          if [ ! -d web ]; then
+            flutter create --platforms=web --project-name appforios --org com.mybudget .
+          fi
+          # Название на экране «Домой».
+          sed -i 's/"name": "appforios"/"name": "Мой бюджет"/; s/"short_name": "appforios"/"short_name": "Бюджет"/' web/manifest.json
+          sed -i 's/<title>appforios<\/title>/<title>Мой бюджет<\/title>/; s/content="appforios"/content="Мой бюджет"/' web/index.html
+
+      - run: flutter pub get
+      - name: Собрать веб-версию
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  ios:
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Собрать iOS без подписи
+        run: flutter build ios --release --no-codesign
+      - name: Упаковать в .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qr MyBudget.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyBudget-ipa
+          path: MyBudget.ipa
+          retention-days: 30
