@@ -6,6 +6,7 @@ import 'screens/account_screen.dart';
 import 'screens/budget_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/more_screen.dart';
+import 'screens/transactions_screen.dart';
 import 'widgets/common.dart';
 
 Future<void> main() async {
@@ -122,6 +123,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final screens = [
       HomeScreen(data: data, onOpenTab: _openTab),
       BudgetScreen(data: data),
+      TransactionsScreen(data: data),
       AccountScreen(data: data),
       MoreScreen(data: data),
     ];
@@ -144,6 +146,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             icon: Icon(Icons.event_note_outlined),
             selectedIcon: Icon(Icons.event_note),
             label: 'Бюджет',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Операции',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),

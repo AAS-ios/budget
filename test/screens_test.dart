@@ -257,7 +257,7 @@ void main() {
     await tester.pumpWidget(BudgetApp(data: data));
     await tester.pumpAndSettle();
 
-    for (final tab in ['Бюджет', 'Счета', 'Ещё', 'Главная']) {
+    for (final tab in ['Бюджет', 'Операции', 'Счета', 'Ещё', 'Главная']) {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: tab);
@@ -321,6 +321,23 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Еда ▸').first);
       await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('операции: поиск и один день', (tester) async {
+      phone(tester);
+      await openScreen(tester, TransactionsScreen(data: data));
+      expect(find.textContaining('потрачено'), findsWidgets);
+
+      await tester.enterText(find.byType(TextField), 'кафе');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('по всем месяцам'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('потрачено').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Потрачено за день'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

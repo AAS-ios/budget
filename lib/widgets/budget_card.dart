@@ -31,7 +31,7 @@ class BudgetCard extends StatelessWidget {
 
     final days = budget.daysLeft;
     final until = budget.nextIncomeDate != null
-        ? 'до дохода ${formatDayMonth(budget.nextIncomeDate!, now: now)}'
+        ? 'до зарплаты ${formatDayMonth(budget.nextIncomeDate!, now: now)}'
         : 'до конца месяца';
 
     return Container(

@@ -375,7 +375,7 @@ class _IncomeCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  status,
+                  income.isMain ? status : '$status · подработка',
                   style: TextStyle(
                     fontSize: 13,
                     color: color ?? Colors.grey.shade600,
@@ -469,6 +469,7 @@ void showPlannedIncomeDialog(
           .firstOrNull
           ?.id;
   String source = income?.source ?? 'Зарплата';
+  bool isMain = income?.isMain ?? true;
   String? errorText;
 
   showDialog(
@@ -553,6 +554,16 @@ void showPlannedIncomeDialog(
                     allowNone: true,
                     onChanged: (value) => setState(() => accountId = value),
                   ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: isMain,
+                    title: const Text('Аванс или зарплата'),
+                    subtitle: const Text(
+                      'Свободные деньги считаются до этого дохода. '
+                      'Для подработки выключите.',
+                    ),
+                    onChanged: (value) => setState(() => isMain = value),
+                  ),
                   if (errorText != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -604,6 +615,7 @@ void showPlannedIncomeDialog(
                     intervalMonths: interval,
                     accountId: accountId,
                     source: source,
+                    isMain: isMain,
                   );
                   if (income == null) {
                     data.plannedIncomes.add(item);

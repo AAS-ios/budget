@@ -22,6 +22,10 @@ class PlannedIncome {
   /// Источник дохода (по имени, как в операциях).
   final String source;
 
+  /// Основной доход — аванс или зарплата. Только до него
+  /// считается дневной бюджет; подработка период не обрывает.
+  final bool isMain;
+
   const PlannedIncome({
     required this.id,
     required this.name,
@@ -30,7 +34,14 @@ class PlannedIncome {
     this.intervalMonths = 1,
     this.accountId,
     this.source = 'Зарплата',
+    this.isMain = true,
   });
+
+  /// Для старых данных без флага: аванс и зарплата — основные.
+  static bool guessMain(String name, String source) {
+    final text = '$name $source'.toLowerCase();
+    return text.contains('зарплат') || text.contains('аванс');
+  }
 
   /// Даты поступлений в промежутке [from]..[to] включительно.
   List<DateTime> occurrences(DateTime from, DateTime to) {
@@ -61,6 +72,7 @@ class PlannedIncome {
     int? intervalMonths,
     String? accountId,
     String? source,
+    bool? isMain,
   }) {
     return PlannedIncome(
       id: id,
@@ -70,6 +82,7 @@ class PlannedIncome {
       intervalMonths: intervalMonths ?? this.intervalMonths,
       accountId: accountId ?? this.accountId,
       source: source ?? this.source,
+      isMain: isMain ?? this.isMain,
     );
   }
 
@@ -81,17 +94,22 @@ class PlannedIncome {
         'intervalMonths': intervalMonths,
         'accountId': accountId,
         'source': source,
+        'isMain': isMain,
       };
 
   factory PlannedIncome.fromJson(Map<String, dynamic> json) {
+    final name = json['name'] as String;
+    final source = json['source'] as String? ?? 'Зарплата';
+
     return PlannedIncome(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: name,
       amount: (json['amount'] as num).toDouble(),
       nextDate: DateTime.parse(json['nextDate'] as String),
       intervalMonths: json['intervalMonths'] as int? ?? 1,
       accountId: json['accountId'] as String?,
-      source: json['source'] as String? ?? 'Зарплата',
+      source: source,
+      isMain: json['isMain'] as bool? ?? guessMain(name, source),
     );
   }
 }
@@ -144,11 +162,15 @@ class PlannedIncomeStore extends ChangeNotifier {
   }
 
   /// Ближайшая дата дохода строго после [date].
-  DateTime? nextAfter(DateTime date) {
+  /// [mainOnly] — только аванс и зарплата, без подработки.
+  DateTime? nextAfter(DateTime date, {bool mainOnly = false}) {
     final day = dateOnly(date);
     DateTime? best;
 
     for (final item in _items) {
+      if (mainOnly && !item.isMain) {
+        continue;
+      }
       for (final occurrence in item.occurrences(
         day.add(const Duration(days: 1)),
         addMonths(day, 13),

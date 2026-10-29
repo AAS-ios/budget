@@ -564,6 +564,46 @@ void main() {
       expect(budget.dailyLimit, 1250);
     });
 
+    test('подработка не обрывает период до зарплаты', () {
+      final data = _dataWithAccounts();
+      data.plannedIncomes.add(
+        PlannedIncome(
+          id: 'salary',
+          name: 'Зарплата',
+          amount: 50000,
+          nextDate: DateTime(2026, 10, 25),
+        ),
+      );
+      data.plannedIncomes.add(
+        PlannedIncome(
+          id: 'side',
+          name: 'Репетиторство',
+          amount: 5000,
+          nextDate: DateTime(2026, 10, 20),
+          source: 'Подработка',
+          isMain: false,
+        ),
+      );
+
+      final budget = data.budgetFor(DateTime(2026, 10, 17));
+
+      expect(budget.periodEnd, DateTime(2026, 10, 24));
+      expect(budget.nextIncomeDate, DateTime(2026, 10, 25));
+    });
+
+    test('старый доход без флага: аванс основной, подработка нет', () {
+      PlannedIncome read(String name, String source) => PlannedIncome.fromJson({
+            'id': 'x',
+            'name': name,
+            'amount': 1000,
+            'nextDate': '2026-10-20T00:00:00.000',
+            'source': source,
+          });
+
+      expect(read('Аванс', 'Зарплата').isMain, isTrue);
+      expect(read('Репетиторство', 'Подработка').isMain, isFalse);
+    });
+
     test('получение дохода переносит дату и распределяет деньги', () {
       final data = _dataWithAccounts();
       final salary = PlannedIncome(

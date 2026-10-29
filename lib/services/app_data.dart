@@ -1071,10 +1071,11 @@ class AppData {
   }
 
   /// Конец текущего бюджетного периода: день перед ближайшим
-  /// доходом, а если доходы не запланированы — конец месяца.
+  /// авансом или зарплатой (подработка не считается),
+  /// а если их нет — конец месяца.
   DateTime periodEnd(DateTime now) {
     final today = dateOnly(now);
-    final nextIncome = plannedIncomes.nextAfter(today);
+    final nextIncome = plannedIncomes.nextAfter(today, mainOnly: true);
 
     if (nextIncome == null) {
       return endOfMonth(today);
@@ -1122,7 +1123,7 @@ class AppData {
     final today = dateOnly(now);
     final end = periodEnd(today);
     final daysLeft = daysBetween(today, end) + 1;
-    final nextIncome = plannedIncomes.nextAfter(today);
+    final nextIncome = plannedIncomes.nextAfter(today, mainOnly: true);
 
     final available = accounts.availableMoney;
 
@@ -1211,7 +1212,7 @@ class AppData {
   /// планы по категориям, остаток — свободные деньги.
   IncomeDistribution distributionFor(double amount, DateTime date) {
     final day = dateOnly(date);
-    final nextIncome = plannedIncomes.nextAfter(day);
+    final nextIncome = plannedIncomes.nextAfter(day, mainOnly: true);
     final until = nextIncome == null
         ? endOfMonth(day)
         : nextIncome.subtract(const Duration(days: 1));

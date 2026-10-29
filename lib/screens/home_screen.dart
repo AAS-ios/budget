@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../models/account.dart';
 import '../models/mandatory_expense.dart';
 import '../services/app_data.dart';
 import '../services/insights.dart';
 import '../utils/format.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/common.dart';
+import 'account_screen.dart';
 import 'add_transaction_screen.dart';
 import 'goals_screen.dart';
 import 'mandatory_expenses_screen.dart';
-import 'transactions_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppData data;
 
-  /// Переключить вкладку внизу: 0 Главная, 1 Бюджет, 2 Счета, 3 Ещё.
+  /// Переключить вкладку внизу:
+  /// 0 Главная, 1 Бюджет, 2 Операции, 3 Счета, 4 Ещё.
   final void Function(int index) onOpenTab;
 
   const HomeScreen({
@@ -62,17 +64,30 @@ class _HomeScreenState extends State<HomeScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
-          _CapitalCard(data: data, onTap: () => widget.onOpenTab(2)),
+          _CapitalCard(data: data, onTap: () => widget.onOpenTab(3)),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => widget.onOpenTab(1),
             child: BudgetCard(budget: budget, now: now),
           ),
 
+          // ── Сколько на каждом счёте (без вкладов)
+          if (accounts.active.any((a) => a.type != AccountType.deposit)) ...[
+            const SizedBox(height: 20),
+            SectionHeader(
+              title: 'Счета',
+              trailing: TextButton(
+                onPressed: () => widget.onOpenTab(3),
+                child: const Text('Все'),
+              ),
+            ),
+            _AccountsCard(data: data),
+          ],
+
           if (accounts.accounts.isEmpty) ...[
             const SizedBox(height: 12),
             AppCard(
-              onTap: () => widget.onOpenTab(2),
+              onTap: () => widget.onOpenTab(3),
               child: const Row(
                 children: [
                   IconBox(icon: Icons.add),
@@ -164,12 +179,12 @@ class _HomeScreenState extends State<HomeScreen> {
             SectionHeader(
               title: 'Вклады',
               trailing: TextButton(
-                onPressed: () => widget.onOpenTab(2),
+                onPressed: () => widget.onOpenTab(3),
                 child: const Text('Счета'),
               ),
             ),
             AppCard(
-              onTap: () => widget.onOpenTab(2),
+              onTap: () => widget.onOpenTab(3),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -241,8 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SectionHeader(
             title: 'Последние операции',
             trailing: TextButton(
-              onPressed: () =>
-                  pushScreen(context, TransactionsScreen(data: data)),
+              onPressed: () => widget.onOpenTab(2),
               child: const Text('Все'),
             ),
           ),
@@ -345,6 +359,60 @@ class _CapitalCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Балансы открытых счетов, кроме вкладов.
+class _AccountsCard extends StatelessWidget {
+  final AppData data;
+
+  const _AccountsCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final list = data.accounts.active
+        .where((account) => account.type != AccountType.deposit)
+        .toList();
+
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        children: list.map((account) {
+          return InkWell(
+            onTap: () => pushScreen(
+              context,
+              AccountDetailsScreen(data: data, accountId: account.id),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              child: Row(
+                children: [
+                  IconBox(icon: accountIcon(account.type), size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      account.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    account.money(account.balance),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: account.balance < 0 ? kExpenseColor : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
